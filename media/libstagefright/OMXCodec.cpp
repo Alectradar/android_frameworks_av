@@ -1886,7 +1886,10 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
             def.format.video.nFrameHeight,
             def.format.video.eColorFormat,
             rotationDegrees,
-            usage | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP);
+#ifdef EXYNOS4_ENHANCEMENTS
+            usage | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP
+                | GRALLOC_USAGE_HW_FIMC1);
+#else
     if (err != 0) {
         return err;
     }
