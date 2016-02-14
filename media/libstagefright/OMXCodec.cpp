@@ -99,6 +99,7 @@
 #ifdef DTS_CODEC_M_
 #include "include/DTSUtils.h"
 #include "include/OMX_Audio_DTS.h"
+#endif
 
 #ifdef USE_SAMSUNG_COLORFORMAT
 #include <sec_format.h>
