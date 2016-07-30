@@ -70,18 +70,6 @@ static const int OMX_SEC_COLOR_FormatNV12TPhysicalAddress = 0x7F000001;
 static const int OMX_SEC_COLOR_FormatNV12LPhysicalAddress = 0x7F000002;
 static const int OMX_SEC_COLOR_FormatNV12LVirtualAddress = 0x7F000003;
 static const int OMX_SEC_COLOR_FormatNV12Tiled = 0x7FC00002;
-static int calc_plane(int width, int height)
-{
-    int mbX, mbY;
-
-    mbX = (width + 15)/16;
-    mbY = (height + 15)/16;
-
-    /* Alignment for interlaced processing */
-    mbY = (mbY + 1) / 2 * 2;
-
-    return (mbX * 16) * (mbY * 16);
-}
 #endif // USE_SAMSUNG_COLORFORMAT
 
 
@@ -810,6 +798,8 @@ static size_t getFrameSize(
         * this part in the future
         */
         case OMX_COLOR_FormatAndroidOpaque:
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch"
 #ifdef USE_SAMSUNG_COLORFORMAT
         case OMX_SEC_COLOR_FormatNV12TPhysicalAddress:
         case OMX_SEC_COLOR_FormatNV12LPhysicalAddress:
@@ -824,6 +814,8 @@ static size_t getFrameSize(
             static unsigned int frameBufferUVSise = ALIGN_TO_8KB(ALIGN_TO_128B(width) * ALIGN_TO_32B(height/2));
             return (frameBufferYSise + frameBufferUVSise);
 #endif
+#pragma clang diagnostic pop
+
         default:
             CHECK(!"Should not be here. Unsupported color format.");
             break;
@@ -1871,29 +1863,12 @@ status_t OMXCodec::allocateOutputBuffersFromNativeWindow() {
     setNativeWindowColorFormat(eNativeColorFormat);
 #endif
 
-#ifdef USE_SAMSUNG_COLORFORMAT
-    OMX_COLOR_FORMATTYPE eColorFormat;
-
-    switch (def.format.video.eColorFormat) {
-    case OMX_SEC_COLOR_FormatNV12TPhysicalAddress:
-         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_CUSTOM_YCbCr_420_SP_TILED;
-         break;
-    case OMX_COLOR_FormatYUV420SemiPlanar:
-         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCbCr_420_SP;
-         break;
-    case OMX_COLOR_FormatYUV420Planar:
-    default:
-         eColorFormat = (OMX_COLOR_FORMATTYPE)HAL_PIXEL_FORMAT_YCbCr_420_P;
-         break;
-    }
-#endif
-
     err = setNativeWindowSizeFormatAndUsage(
             mNativeWindow.get(),
             def.format.video.nFrameWidth,
             def.format.video.nFrameHeight,
 #ifdef USE_SAMSUNG_COLORFORMAT
-            eColorFormat,
+            eNativeColorFormat,
 #else
             def.format.video.eColorFormat,
 #endif
@@ -3125,6 +3100,8 @@ bool OMXCodec::drainInputBuffer(BufferInfo *info) {
                 info->mMediaBuffer = srcBuffer;
         } else {
 #ifdef USE_SAMSUNG_COLORFORMAT
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch"
             OMX_PARAM_PORTDEFINITIONTYPE def;
             InitOMXParams(&def);
             def.nPortIndex = kPortIndexInput;
@@ -3158,6 +3135,7 @@ bool OMXCodec::drainInputBuffer(BufferInfo *info) {
                             + srcBuffer->range_offset(),
                         srcBuffer->range_length());
             }
+#pragma clang diagnostic pop
 #else
             CHECK(srcBuffer->data() != NULL) ;
             memcpy((uint8_t *)info->mData + offset,
